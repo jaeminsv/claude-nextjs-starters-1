@@ -21,16 +21,31 @@ export async function generateMetadata({
   const { id } = await params
   const invoice = await getInvoiceById(id)
 
-  // If invoice not found, return generic metadata
+  // If invoice not found, return generic metadata with fallback OG tags
   if (!invoice) {
     return {
       title: '견적서를 찾을 수 없습니다',
+      openGraph: {
+        title: '견적서를 찾을 수 없습니다',
+        description: '요청하신 견적서를 찾을 수 없습니다.',
+        type: 'website',
+      },
     }
   }
 
+  // Build descriptive title and description for link preview cards
+  // (shown when sharing invoice URLs on KakaoTalk, Slack, etc.)
+  const ogTitle = `${invoice.invoiceNumber} - ${invoice.clientName} 견적서`
+  const ogDescription = `${invoice.clientName}에게 발행된 견적서 ${invoice.invoiceNumber}`
+
   return {
-    title: `${invoice.invoiceNumber} - ${invoice.clientName} 견적서`,
-    description: `${invoice.clientName}에게 발행된 견적서 ${invoice.invoiceNumber}`,
+    title: ogTitle,
+    description: ogDescription,
+    openGraph: {
+      title: ogTitle,
+      description: ogDescription,
+      type: 'website',
+    },
   }
 }
 
