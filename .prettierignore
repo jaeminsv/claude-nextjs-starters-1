@@ -39,3 +39,6 @@ Thumbs.db
 
 # Generated files
 next-env.d.ts
+
+# Claude Code internal settings (not user-managed source files)
+.claude/
