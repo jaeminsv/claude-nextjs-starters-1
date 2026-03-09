@@ -36,6 +36,10 @@ yarn-error.log*
 # shrimp-task-manager runtime data
 /shrimp_data
 
+# playwright MCP screenshots and logs
+.playwright-mcp/
+*.png
+
 # vercel
 .vercel
 
