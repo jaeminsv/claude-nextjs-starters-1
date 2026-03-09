@@ -99,20 +99,32 @@ export function getDateProperty(
 }
 
 /**
- * Extracts the selected option value from a Notion select property.
- * Select properties have a single chosen option with a name.
+ * Extracts the selected option value from a Notion select or status property.
+ * Both "select" and "status" property types store a single chosen option with a name.
+ * Notion's "Status" column uses the "status" type (not "select"), so we handle both.
  *
  * @param page - The Notion page response object
- * @param propertyName - The name of the select property
- * @returns The selected option name, or empty string if not found
+ * @param propertyName - The name of the select/status property
+ * @returns The selected option name (lowercased for consistent comparison), or empty string if not found
  */
 export function getSelectProperty(
   page: PageObjectResponse,
   propertyName: string
 ): string {
   const property = page.properties[propertyName]
-  if (!property || property.type !== 'select') return ''
-  return property.select?.name ?? ''
+  if (!property) return ''
+
+  // Handle "select" type (dropdown with custom options)
+  if (property.type === 'select') {
+    return property.select?.name?.toLowerCase() ?? ''
+  }
+
+  // Handle "status" type (Notion's built-in status column: To-do, In progress, Done, etc.)
+  if (property.type === 'status') {
+    return property.status?.name?.toLowerCase() ?? ''
+  }
+
+  return ''
 }
 
 /**
