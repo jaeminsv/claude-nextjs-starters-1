@@ -174,8 +174,8 @@ export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
             </p>
           ) : (
             invoice.items.map(item => (
-              <Card key={item.id}>
-                <CardHeader className="pb-2">
+              <Card key={item.id} className="gap-3 py-4">
+                <CardHeader>
                   <CardTitle className="text-base">
                     {item.description}
                   </CardTitle>
