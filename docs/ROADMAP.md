@@ -6,12 +6,11 @@ A Notion-backed invoice management system that enables freelancers and small bus
 
 The Notion Invoice System is designed for freelancers and small businesses who need a lightweight invoicing solution, providing:
 
-- **Notion Database Integration (F001)**: Fetch invoice data from Notion via the official API, using Notion as the single source of truth
-- **Invoice Viewer (F002)**: Public-facing web page to display invoice details with responsive layout
-- **PDF Download (F003)**: Generate and download invoices as PDF files for saving and printing
-- **URL-based Access (F010)**: Each invoice is accessible via a unique URL based on its Notion page ID
-- **Validation & Error Handling (F011)**: Graceful handling of invalid or missing invoice IDs
-- **Responsive Layout (F012)**: Mobile, tablet, and desktop support for the invoice viewer
+- **Notion Database Integration**: Fetch invoice data from Notion via the official API, using Notion as the single source of truth
+- **Invoice Viewer**: Public-facing web page to display invoice details with responsive layout
+- **PDF Download**: Generate and download invoices as PDF files for saving and printing
+- **Admin Dashboard**: Admin interface to view issued invoices and copy client-facing URLs
+- **Dark Mode**: User-selectable light/dark/system theme toggle
 
 ## Development Workflow
 
@@ -43,175 +42,178 @@ The Notion Invoice System is designed for freelancers and small businesses who n
 
 ---
 
-## Current Status
+## MVP Summary (Completed)
 
-**Progress: 12/12 tasks completed (100%) — All Phases done ✅**
+**Progress: 12/12 tasks completed (100%)**
 
-### Completed (Pre-Roadmap)
+The MVP was completed across 5 phases (see `docs/roadmaps/ROADMAP_v1.md` for full details):
 
-The following foundation work has already been completed:
+- **Phase 1: Skeleton** -- Notion database setup, integration verification, bug fixes (Status property type mismatch resolved)
+- **Phase 2: Common** -- Loading/error states, metadata enhancement with OG tags, responsive layout polish
+- **Phase 3: Core Feature** -- @react-pdf/renderer setup, InvoicePDF component, PDF API route with download button
+- **Phase 4: Additional Feature** -- Invoice expiration warning with 3-state logic (expired / expiring-soon / valid)
+- **Phase 5: Optimization** -- Lint/type/build verification, E2E testing, documentation update
 
-- [x] Next.js 15.5.3 project initialization with TypeScript, TailwindCSS v4, shadcn/ui
-- [x] Starter template cleaned up (removed boilerplate)
-- [x] Environment variable validation (`src/lib/env.ts`) using Zod
-- [x] Notion client setup with lazy initialization (`src/lib/notion.ts`)
-  - `getInvoiceById()` -- fetches invoice page + related items
-  - `getInvoiceItems()` -- queries Items database by relation filter
-  - Property extractor utilities: `getTextProperty`, `getNumberProperty`, `getDateProperty`, `getSelectProperty`
-- [x] TypeScript types defined (`src/types/invoice.ts`) -- `Invoice`, `InvoiceItem`, `InvoiceStatus`
-- [x] Invoice detail page (`src/app/invoice/[id]/page.tsx`) -- Server Component with dynamic metadata
-- [x] Invoice detail UI component (`src/components/invoice/invoice-detail.tsx`) -- responsive table/card layout, KRW formatting
-- [x] 404 Not Found page (`src/app/not-found.tsx`) -- friendly error with guidance message
-- [x] Base UI components from shadcn/ui: Badge, Card, Separator, Table, Button, etc.
-- [x] Container layout component (`src/components/layout/container.tsx`)
+**Key Deliverables:**
 
----
-
-## Development Phases
-
-### Phase 1: Skeleton -- Notion Data Verification & Integration Testing ✅
-
-**Goal:** Confirm the existing Notion integration works end-to-end with a real Notion database before building additional features.
-
-- [x] **Task 001: Notion Environment Setup & Database Configuration** (Score: 90)
-  - Set up `.env.local` with `NOTION_API_KEY`, `NOTION_INVOICES_DATABASE_ID`, `NOTION_ITEMS_DATABASE_ID`
-  - Created Notion Invoices database (InvoiceNumber, ClientName, IssueDate, ValidUntil, Status, Items)
-  - Created Notion Items database (Description, Quantity, UnitPrice, Invoice relation)
-  - Connected the Notion Integration to both databases
-  - Note: Notion Status column uses `status` type (not `select`), which required a fix in Task 002
-
-- [x] **Task 002: Notion Integration Verification & Bug Fixes** (Score: 92)
-  - Verified `env.ts` and `notion.ts` reference consistent database ID env var names
-  - Added test invoice (INV-001, ABC 디자인) with 3 line items
-  - **Bug found & fixed:** `getSelectProperty()` in `notion.ts` only handled `select` type, but Notion's Status column uses `status` type. Added `status` type handling and `toLowerCase()` normalization
-  - Playwright MCP verified: invoice page loads correctly, 404 works for invalid IDs, responsive layout at 375px and 1280px
+- [x] Notion API integration with dual-database architecture (Invoices + Items)
+- [x] Invoice detail page with Server Component rendering
+- [x] PDF download with Korean font support (Noto Sans KR)
+- [x] Invoice expiration warning banners
+- [x] Loading skeleton, error boundary, 404 page
+- [x] Responsive layout (mobile 375px, tablet 768px, desktop 1280px)
+- [x] ThemeProvider configured (dark mode infrastructure ready)
+- [x] `npm run check-all` and `npm run build` passing
 
 ---
 
-### Phase 2: Common -- Loading States, Error Handling & Responsive Foundation ✅
+## Enhancement Phases
 
-**Goal:** Establish shared UI patterns (loading, error, metadata, responsive) that all features depend on, before building individual features.
+### Phase 6: Admin Dashboard -- Invoice List & Management ✅
 
-- [x] **Task 003: Loading & Error States for Invoice Page** (Score: 92)
-  - Created `src/app/invoice/[id]/loading.tsx` — Skeleton UI matching InvoiceDetail structure (header, date grid, items table + mobile cards, total)
-  - Created `src/app/invoice/[id]/error.tsx` — Client Component Error Boundary with destructive Alert and retry Button
-  - Both files follow responsive pattern: desktop table (md+) and mobile cards (<md)
+**Goal:** Provide an admin interface where the invoice issuer can view all issued invoices and quickly copy client-facing URLs for sharing.
 
-- [x] **Task 004: Metadata Enhancement & Root Layout Setup** (Score: 93)
-  - Added `metadataBase` to root layout with `getBaseUrl()` helper (NEXT_PUBLIC_APP_URL > VERCEL_URL > localhost)
-  - Enhanced `generateMetadata()` with `openGraph` fields (title, description, type) for both valid and not-found cases
-  - Verified OG tags render in HTML via curl: `og:title="INV-001 - ABC 디자인 견적서"`
+- **Task 013: Admin Layout & Route Structure** ✅ - 완료
+  - ✅ Create `/admin` route group with dedicated admin layout
+  - ✅ Admin layout includes sidebar/header navigation, app branding, and ThemeToggle integration
+  - ✅ Create admin root page (`/admin`) that redirects to `/admin/invoices`
+  - Related files: `src/app/admin/layout.tsx`, `src/app/admin/page.tsx`
+  - Acceptance criteria: `/admin` renders the admin layout shell with navigation and theme toggle visible
 
-- [x] **Task 005: Responsive Layout Verification & Polish** (Score: 90)
-  - Verified at 375px (mobile), 768px (tablet), 1280px (desktop) via Playwright screenshots
-  - **Fix applied:** Mobile Card layout had excessive gap between CardHeader and CardContent (24px → 12px), overridden with `gap-3 py-4`
-  - All breakpoints confirmed: header stacking, grid columns, Table/Card switching all correct
+- **Task 014: Invoice List API & Data Fetching** ✅ - 완료
+  - ✅ Create server-side function to fetch all invoices from Notion database with pagination support
+  - ✅ Add `getAllInvoices()` to `src/lib/notion.ts` using `databases.query()` with sorting (newest first)
+  - ✅ Define `InvoiceListItem` type (subset of Invoice: id, invoiceNumber, clientName, issueDate, validUntil, status, totalAmount)
+  - Related files: `src/lib/notion.ts`, `src/types/invoice.ts`
+  - Acceptance criteria: `getAllInvoices()` returns paginated invoice list sorted by issue date descending
 
----
+- **Task 015: Invoice List Page UI** ✅ - 완료
+  - ✅ Create `/admin/invoices` page displaying all invoices in a data table
+  - ✅ Table columns: Invoice Number, Client Name, Issue Date, Valid Until, Status (Badge), Total Amount (KRW formatted)
+  - ✅ Mobile responsive: switch to card layout on small screens (reuse pattern from invoice-detail)
+  - ✅ Empty state when no invoices exist
+  - Related files: `src/app/admin/invoices/page.tsx`, `src/components/admin/invoice-list.tsx`
+  - Acceptance criteria: Invoice list page renders all invoices from Notion database with correct formatting
 
-### Phase 3: Core Feature -- PDF Download (F003) ✅
+- **Task 016: Client Link Copy Feature** ✅ - 완료
+  - ✅ Add a "Copy Link" button to each invoice row in the admin list
+  - ✅ Copy the public invoice URL (`/invoice/[notionPageId]`) to clipboard using `navigator.clipboard.writeText()`
+  - ✅ Show sonner toast confirmation on successful copy ("Link copied to clipboard")
+  - Related files: `src/components/admin/copy-link-button.tsx`, `src/components/admin/invoice-list.tsx`
+  - Acceptance criteria: Clicking "Copy Link" copies the correct public URL and shows a toast notification
 
-**Goal:** Implement the PDF download functionality so clients can save and print invoices.
-
-- [x] **Task 006: Install and Configure @react-pdf/renderer** (Score: 91)
-  - Installed `@react-pdf/renderer` and verified Turbopack compatibility
-  - Added `serverExternalPackages` to `next.config.ts` (Next.js 15 moved from `experimental`)
-  - Registered Noto Sans KR fonts (Regular + Bold) using local OTF files in `/public/fonts/`
-  - Extracted `formatKRW`, `formatDate` to `src/lib/format.ts` for PDF/web reuse
-  - **Risk resolved:** Turbopack build passes successfully — highest project risk eliminated
-
-- [x] **Task 007: Create InvoicePDF Component** (Score: 90)
-  - Created `src/components/invoice/invoice-pdf.tsx` using @react-pdf/renderer primitives (Document, Page, View, Text, StyleSheet)
-  - 7 sections matching InvoiceDetail layout: header, info grid, items table, total amount
-  - Korean text renders correctly with registered Noto Sans KR fonts
-  - Uses shared `formatKRW`, `formatDate` from `src/lib/format.ts`
-
-- [x] **Task 008: PDF Generation API Route & Download Button** (Score: 90)
-  - Created GET API route `src/app/api/invoice/[id]/pdf/route.tsx` with Node.js→Web ReadableStream conversion
-  - Content-Type: application/pdf, Content-Disposition with invoice number filename
-  - Created `src/components/invoice/pdf-download-button.tsx` Client Component with Loader2 spinner and sonner toast error handling
-  - Integrated PdfDownloadButton into invoice-detail.tsx header section
-  - **Font issue resolved:** jsDelivr CDN returned 403, switched to local OTF files in `/public/fonts/`
-  - Verified: 200 application/pdf for valid ID, 404 for invalid ID
+- **Task 016-1: Admin Dashboard Integration Test** ✅ - 완료
+  - ✅ Playwright MCP E2E test: admin page loads, invoice list displays, copy link works
+  - ✅ Verify responsive layout at mobile/desktop breakpoints
+  - ✅ Verify theme toggle switches between light/dark/system modes
+  - ✅ Test empty state when no invoices are available
+  - Related files: Playwright MCP test scenarios
+  - Acceptance criteria: All admin dashboard user flows pass E2E testing
 
 ---
 
-### Phase 4: Additional Feature -- Invoice Expiration Warning ✅
+### Phase 6.5: Admin Authentication ✅
 
-**Goal:** Add business logic enhancements that improve the invoice viewing experience.
+**Goal:** Protect admin pages with password-based authentication so only authorized users can access the admin dashboard.
 
-- [x] **Task 009: Invoice Expiration Warning** (Score: 92)
-  - Created `getExpirationStatus()` helper with 3-state logic: expired (daysLeft < 0), expiring-soon (daysLeft ≤ 7), valid
-  - Expired: destructive Alert with AlertCircle icon — "견적서가 만료되었습니다"
-  - Expiring-soon: yellow warning Alert with Clock icon — "N일 후에 만료됩니다" (0일 = "오늘 만료됩니다")
-  - Uses `expDate.setHours(23, 59, 59, 999)` for end-of-day precision
-  - Playwright MCP verified: expired invoice shows destructive banner, near-expiration shows yellow countdown
+- **Task 016-2: Auth Utility & Environment Setup** ✅ - 완료
+  - ✅ Create `src/lib/auth.ts` with Web Crypto API HMAC-SHA256 token creation/verification
+  - ✅ Add `ADMIN_PASSWORD` environment variable to `.env.local` and `src/lib/env.ts`
+  - ✅ Edge Runtime compatible (crypto.subtle instead of Node.js crypto)
+  - Related files: `src/lib/auth.ts`, `src/lib/env.ts`, `.env.local`
+
+- **Task 016-3: Login Page & Auth API Routes** ✅ - 완료
+  - ✅ Create `/admin/login` page with React Hook Form + Zod validation
+  - ✅ Create `POST /api/admin/login` route (password validation + HttpOnly session cookie)
+  - ✅ Create `POST /api/admin/logout` route (cookie clearing)
+  - Related files: `src/app/admin/login/page.tsx`, `src/app/api/admin/login/route.ts`, `src/app/api/admin/logout/route.ts`
+
+- **Task 016-4: Middleware Protection & UI Updates** ✅ - 완료
+  - ✅ Create `src/middleware.ts` protecting `/admin/*` routes (except `/admin/login`)
+  - ✅ Add "관리자 페이지" link to landing page (`src/app/page.tsx`)
+  - ✅ Add LogoutButton to admin layout header (`src/components/admin/logout-button.tsx`)
+  - Related files: `src/middleware.ts`, `src/app/page.tsx`, `src/components/admin/logout-button.tsx`
 
 ---
 
-### Phase 5: Optimization -- Testing, Deployment & Documentation ✅
+### Phase 7: Dark Mode Integration
 
-**Goal:** Ensure the application is stable, passes all checks, and is ready for Vercel deployment.
+**Goal:** Wire up the existing ThemeToggle component into the application so users can switch between light, dark, and system themes.
 
-- [x] **Task 010: Lint, Type Check & Build Verification** (Score: 93)
-  - `npm run check-all` passes: TypeScript, ESLint, Prettier all zero errors
-  - `npm run build` succeeds with Turbopack — no warnings
-  - `/invoice/[id]` confirmed as `ƒ (Dynamic)` — server-rendered on demand, not statically generated
+- [ ] **Task 017: Dark Mode Toggle Integration & Verification**
+  - Integrate ThemeToggle into the public invoice page header (alongside PDF download button)
+  - Verify all existing components render correctly in dark mode (invoice-detail, loading, error, 404, PDF download button)
+  - Fix any color contrast or styling issues in dark mode (check Badge, Alert, Card, Table components)
+  - Verify dark mode persists across page navigation (next-themes cookie/localStorage)
+  - Related files: `src/components/theme-toggle.tsx`, `src/components/invoice/invoice-detail.tsx`, `src/app/not-found.tsx`
+  - Acceptance criteria: Theme toggle is visible on all pages, switching themes works instantly, dark mode renders all components correctly
 
-- [x] **Task 011: End-to-End Testing & Deployment** (Score: 91)
-  - Playwright MCP E2E tests passed: invoice page load, data display, expiration banner, PDF download (200, 67KB), 404 for invalid ID
-  - Responsive verified: mobile 375px (Card layout), desktop 1280px (Table layout)
-  - Vercel deployment instructions documented in README.md (environment variables, setup steps)
-  - Note: Actual Vercel deployment deferred — requires project owner to configure environment variables in Vercel dashboard
+- [ ] **Task 017-1: Dark Mode E2E Test**
+  - Playwright MCP test: toggle between light/dark/system on invoice page and admin page
+  - Verify visual consistency in both themes (no invisible text, broken borders, or contrast issues)
+  - Test theme persistence after page reload
+  - Related files: Playwright MCP test scenarios
+  - Acceptance criteria: Theme switching works correctly across all pages with no visual regressions
 
-- [x] **Task 012: Documentation Update** (Score: 92)
-  - README.md updated: Notion Status property type corrected (`status` not `select`), project structure reflects all new files
-  - Added complete Data Flow diagram: Notion DB → API → Server Component → InvoiceDetail → PDF API route
-  - Deployment section expanded with Vercel dashboard steps and environment variable table
+---
+
+### Phase 8: Polish & Deployment
+
+**Goal:** Final quality assurance and production readiness.
+
+- [ ] **Task 018: Build Verification & Documentation Update**
+  - Run `npm run check-all` and `npm run build` to confirm zero errors
+  - Update README.md with new admin routes and dark mode feature
+  - Update PRD.md to reflect completed post-MVP features
+  - Add admin page routes to the Pages table in README
+  - Related files: `README.md`, `docs/PRD.md`
+  - Acceptance criteria: All checks pass, documentation accurately reflects current features
 
 ---
 
 ## Risk Register
 
-| Risk                                                                         | Impact                        | Mitigation                                                                                                                                |
-| ---------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `@react-pdf/renderer` incompatibility with Next.js 15 Turbopack              | High -- blocks PDF feature    | ✅ **Resolved in Task 006.** Turbopack build passes. Used `serverExternalPackages` (top-level in Next.js 15, not experimental).           |
-| Notion API rate limiting (3 requests/second)                                 | Medium -- slow page loads     | Invoice page makes 2 API calls (page + items). Monitor in production. Add caching (ISR or in-memory) if needed.                           |
-| Korean font rendering in PDF                                                 | Medium -- garbled text in PDF | ✅ **Resolved in Task 006-007.** Local OTF files in `/public/fonts/` (CDN 403 issue bypassed). Korean renders correctly.                  |
-| Notion property name mismatch                                                | High -- data fails to load    | ✅ **Resolved in Task 002.** Property names match. Additionally found `status` vs `select` type mismatch — fixed with dual-type handling. |
-| `NOTION_ITEMS_DATABASE_ID` vs `NOTION_INVOICES_DATABASE_ID` naming confusion | Medium -- wrong data queried  | ✅ **Resolved in Task 002.** Env var names are consistent across `env.ts` and `notion.ts`.                                                |
+| Risk                                                        | Impact                                       | Mitigation                                                                           |
+| ----------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Notion API rate limiting (3 req/sec) on admin list page     | Medium -- slow list loads with many invoices | Implement pagination with cursor-based fetching; consider ISR caching for admin list |
+| Notion `databases.query()` returns max 100 results per call | Medium -- incomplete invoice list            | Implement cursor-based pagination to fetch all pages                                 |
+| Dark mode styling inconsistencies with shadcn/ui            | Low -- visual bugs                           | shadcn/ui components support dark mode natively; verify with Playwright screenshots  |
+| ~~Admin page accessible without authentication~~            | ~~Low -- data exposure for MVP~~             | ✅ Resolved: Password-based auth with HMAC session cookies implemented in Phase 6.5  |
 
 ---
 
 ## Definition of Done
 
-- [x] All tasks above are checked off
-- [x] `npm run check-all` passes with zero errors
-- [x] `npm run build` succeeds without warnings
-- [x] Invoice page loads correctly with real Notion data
-- [x] PDF download works and renders Korean text correctly
-- [x] 404 page displays for invalid invoice IDs
-- [x] Layout is usable on mobile (375px), tablet (768px), and desktop (1280px)
-- [ ] Application is deployed and accessible on Vercel
+- [x] ~~MVP: All 12 tasks completed~~
+- [x] Admin dashboard displays all invoices from Notion
+- [x] Copy link feature works with clipboard and toast feedback
+- [x] Admin authentication with password-based login
+- [ ] Dark mode toggle visible and functional on all pages
+- [ ] `npm run check-all` passes with zero errors
+- [ ] `npm run build` succeeds without warnings
+- [ ] Responsive layout verified at mobile, tablet, and desktop breakpoints
+- [ ] All E2E tests pass via Playwright MCP
 
 ---
 
-## Post-MVP Roadmap (Out of Scope)
+## Future Roadmap (Out of Scope)
 
-### Phase 6: Admin Dashboard
+### Phase 9: Authentication & Security (Partially Completed)
 
-- Invoice list page with search and filtering
-- Invoice status management (approve/reject)
-- Basic analytics (total invoices, pending/approved counts)
+- ~~Admin page authentication~~ ✅ (Implemented in Phase 6.5 with HMAC session cookies)
+- Role-based access control
+- OAuth integration (NextAuth.js or Clerk) for multi-user support
 
-### Phase 7: Automation
+### Phase 10: Automation
 
 - Email delivery via SendGrid or Resend
 - Invoice expiry notifications
 - Client response tracking
 
-### Phase 8: Advanced Features
+### Phase 11: Advanced Features
 
+- Invoice search and filtering on admin page
+- Invoice status management (approve/reject from admin)
 - Multiple PDF template designs
 - Multi-language invoice support
 - Electronic signature integration

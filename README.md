@@ -11,13 +11,18 @@ A lightweight invoice management system that uses Notion as a database. Freelanc
 - Invoice issuers (freelancers / small businesses) — manage invoices directly in Notion
 - Clients (invoice recipients) — access invoices via a shared link
 
-**MVP Scope**: Public invoice viewer with Notion API integration and PDF download. No admin dashboard — Notion is used directly as the CMS.
+**MVP Scope**: Public invoice viewer with Notion API integration and PDF download.
+**Post-MVP**: Admin dashboard with invoice list, password authentication, client link sharing, and dark mode toggle.
 
 ## Pages
 
 | Route                     | Description                                                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------- |
+| `/`                       | Landing page with link to admin dashboard                                                          |
 | `/invoice/[notionPageId]` | Invoice detail page — displays invoice data fetched from Notion and provides a PDF download button |
+| `/admin`                  | Redirects to `/admin/invoices`                                                                     |
+| `/admin/login`            | Admin login page — password-based authentication                                                   |
+| `/admin/invoices`         | Admin invoice list — view all invoices and copy client-facing URLs                                 |
 | `404`                     | Shown when an invalid or deleted invoice ID is accessed                                            |
 
 ## Core Features
@@ -28,6 +33,10 @@ A lightweight invoice management system that uses Notion as a database. Freelanc
 - **F010 — URL Generation**: Notion page ID is used as the unique invoice URL segment
 - **F011 — Validation**: Returns a 404 page for invalid or missing invoice IDs
 - **F012 — Responsive Layout**: Works on mobile, tablet, and desktop
+- **F013 — Admin Dashboard**: View all issued invoices in a responsive table/card layout
+- **F014 — Client Link Copy**: Copy public invoice URLs to clipboard with toast feedback
+- **F015 — Admin Authentication**: Password-based login with HMAC-SHA256 session cookies and Edge Runtime middleware
+- **F016 — Dark Mode**: User-selectable light/dark/system theme toggle on all pages (next-themes)
 
 ## Tech Stack
 
@@ -60,6 +69,7 @@ cp .env.local.example .env.local
 NOTION_API_KEY=secret_xxxxxxxxxxxxx
 NOTION_INVOICES_DATABASE_ID=xxxxxxxxxxxxx
 NOTION_ITEMS_DATABASE_ID=xxxxxxxxxxxxx
+ADMIN_PASSWORD=your-admin-password
 ```
 
 ### 3. Set up Notion
@@ -121,16 +131,32 @@ npm run format       # Prettier (write)
 ```
 src/
   app/
-    api/invoice/[id]/pdf/
-      route.tsx              # PDF generation API route (GET)
+    admin/
+      login/
+        page.tsx             # Admin login page (Client Component)
+      invoices/
+        page.tsx             # Admin invoice list page (Server Component)
+      layout.tsx             # Admin layout with header, logout, theme toggle
+      page.tsx               # Redirects to /admin/invoices
+    api/
+      admin/
+        login/route.ts       # POST — password validation + session cookie
+        logout/route.ts      # POST — clear session cookie
+      invoice/[id]/pdf/
+        route.tsx             # GET — PDF generation API route
     invoice/[id]/
       page.tsx               # Invoice detail page (Server Component)
       loading.tsx            # Skeleton loading UI
       error.tsx              # Error boundary (Client Component)
     not-found.tsx            # 404 page for invalid invoice IDs
-    layout.tsx               # Root layout with metadata base
-    globals.css              # Global styles
+    page.tsx                 # Landing page with admin link
+    layout.tsx               # Root layout with ThemeProvider
+    globals.css              # Global styles with dark mode variables
   components/
+    admin/
+      invoice-list.tsx       # Responsive invoice table/card list
+      copy-link-button.tsx   # Copy public invoice URL to clipboard
+      logout-button.tsx      # Logout button (Client Component)
     invoice/
       invoice-detail.tsx     # Invoice display component with expiration warning
       invoice-pdf.tsx        # PDF document component (@react-pdf/renderer)
@@ -138,16 +164,20 @@ src/
     layout/
       container.tsx          # Responsive container wrapper
     providers/
-      theme-provider.tsx     # Dark mode theme provider
+      theme-provider.tsx     # Dark mode theme provider (next-themes)
+    theme-toggle.tsx         # Light/dark/system theme dropdown toggle
     ui/                      # shadcn/ui components
   lib/
+    auth.ts                  # HMAC-SHA256 session token (Web Crypto API)
     notion.ts                # Notion API client and data fetchers
     env.ts                   # Environment variable validation (Zod)
     format.ts                # Shared formatting utilities (KRW, dates)
+    invoice-utils.ts         # Shared invoice helpers (status badge)
     fonts.ts                 # Korean font registration for PDF
     utils.ts                 # Utility helpers
   types/
     invoice.ts               # TypeScript types (Invoice, InvoiceItem, InvoiceStatus)
+  middleware.ts              # Edge middleware — protects /admin/* routes
 public/
   fonts/
     NotoSansKR-Regular.otf   # Korean font for PDF rendering
@@ -198,12 +228,13 @@ public/
 2. Import the project in [Vercel Dashboard](https://vercel.com/new)
 3. Add the following environment variables in project settings:
 
-   | Variable                      | Description                   |
-   | ----------------------------- | ----------------------------- |
-   | `NOTION_API_KEY`              | Notion integration secret key |
-   | `NOTION_INVOICES_DATABASE_ID` | Invoices database ID from URL |
-   | `NOTION_ITEMS_DATABASE_ID`    | Items database ID from URL    |
-   | `NEXT_PUBLIC_APP_URL`         | (Optional) Custom domain URL  |
+   | Variable                      | Description                         |
+   | ----------------------------- | ----------------------------------- |
+   | `NOTION_API_KEY`              | Notion integration secret key       |
+   | `NOTION_INVOICES_DATABASE_ID` | Invoices database ID from URL       |
+   | `NOTION_ITEMS_DATABASE_ID`    | Items database ID from URL          |
+   | `ADMIN_PASSWORD`              | Password for admin dashboard access |
+   | `NEXT_PUBLIC_APP_URL`         | (Optional) Custom domain URL        |
 
 4. Deploy — Vercel auto-detects Next.js and configures the build
 
