@@ -10,10 +10,36 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { formatKRW, formatDate } from '@/lib/format'
+import { PdfDownloadButton } from '@/components/invoice/pdf-download-button'
+import { AlertCircle, Clock } from 'lucide-react'
 
 // Props for the InvoiceDetail component
 interface InvoiceDetailProps {
   invoice: Invoice
+}
+
+/**
+ * Determines the expiration status of an invoice.
+ * Returns null if validUntil is empty, otherwise returns
+ * the status type and days remaining.
+ */
+function getExpirationStatus(validUntil: string): {
+  type: 'expired' | 'expiring-soon' | 'valid'
+  daysLeft: number
+} | null {
+  if (!validUntil) return null
+  const expDate = new Date(validUntil)
+  expDate.setHours(23, 59, 59, 999) // End of expiration day
+  const now = new Date()
+  const daysLeft = Math.ceil(
+    (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  if (daysLeft < 0) return { type: 'expired', daysLeft }
+  if (daysLeft <= 7) return { type: 'expiring-soon', daysLeft }
+  return { type: 'valid', daysLeft }
 }
 
 /**
@@ -46,27 +72,6 @@ function getStatusBadge(status: InvoiceStatus) {
 }
 
 /**
- * Formats a number as Korean Won currency.
- * Example: 150000 → "150,000원"
- */
-function formatKRW(amount: number): string {
-  return `${amount.toLocaleString('ko-KR')}원`
-}
-
-/**
- * Formats an ISO date string to a localized Korean date.
- * Example: "2024-01-15" → "2024년 1월 15일"
- */
-function formatDate(isoDate: string): string {
-  if (!isoDate) return '-'
-  return new Date(isoDate).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-/**
  * InvoiceDetail component - displays the full content of an invoice.
  * This is a Server Component (no 'use client' directive needed).
  *
@@ -79,6 +84,8 @@ function formatDate(isoDate: string): string {
  */
 export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
   const statusBadge = getStatusBadge(invoice.status)
+  // Calculate expiration status using server time
+  const expirationStatus = getExpirationStatus(invoice.validUntil)
 
   return (
     <div className="space-y-6">
@@ -90,10 +97,37 @@ export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
             {invoice.invoiceNumber}
           </h1>
         </div>
-        <Badge variant="outline" className={statusBadge.className}>
-          {statusBadge.label}
-        </Badge>
+        {/* Right side: status badge + PDF download button */}
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className={statusBadge.className}>
+            {statusBadge.label}
+          </Badge>
+          {/* Client component rendered inside this Server Component — valid in Next.js App Router */}
+          <PdfDownloadButton invoiceId={invoice.id} />
+        </div>
       </div>
+
+      {/* Expiration warning banner — shown only when expired or expiring within 7 days */}
+      {expirationStatus?.type === 'expired' && (
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertTitle>견적서가 만료되었습니다</AlertTitle>
+          <AlertDescription>
+            이 견적서의 유효기간이 지났습니다. 새로운 견적서를 요청해 주세요.
+          </AlertDescription>
+        </Alert>
+      )}
+      {expirationStatus?.type === 'expiring-soon' && (
+        <Alert className="border-yellow-400 bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300">
+          <Clock className="size-4 text-yellow-700 dark:text-yellow-300" />
+          <AlertTitle>견적서 만료 임박</AlertTitle>
+          <AlertDescription>
+            {expirationStatus.daysLeft === 0
+              ? '이 견적서는 오늘 만료됩니다.'
+              : `이 견적서는 ${expirationStatus.daysLeft}일 후에 만료됩니다.`}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Separator />
 
