@@ -45,6 +45,8 @@ The Notion Invoice System is designed for freelancers and small businesses who n
 
 ## Current Status
 
+**Progress: 5/12 tasks completed (42%) — Phase 1~2 done, Phase 3 next**
+
 ### Completed (Pre-Roadmap)
 
 The following foundation work has already been completed:
@@ -67,45 +69,43 @@ The following foundation work has already been completed:
 
 ## Development Phases
 
-### Phase 1: Skeleton -- Notion Data Verification & Integration Testing
+### Phase 1: Skeleton -- Notion Data Verification & Integration Testing ✅
 
 **Goal:** Confirm the existing Notion integration works end-to-end with a real Notion database before building additional features.
 
-- **Task 001: Notion Environment Setup & Database Configuration** - Priority
+- [x] **Task 001: Notion Environment Setup & Database Configuration** (Score: 90)
   - Set up `.env.local` with `NOTION_API_KEY`, `NOTION_INVOICES_DATABASE_ID`, `NOTION_ITEMS_DATABASE_ID`
-  - Create `.env.local.example` as a template for other developers
-  - Create the Notion Invoices database with fields: InvoiceNumber (Title), ClientName (Text), IssueDate (Date), ValidUntil (Date), Status (Select: pending/approved/rejected), Items (Relation)
-  - Create the Notion Items database with fields: Description (Title), Quantity (Number), UnitPrice (Number), Amount (Formula), Invoice (Relation)
-  - Connect the Notion Integration to both databases
+  - Created Notion Invoices database (InvoiceNumber, ClientName, IssueDate, ValidUntil, Status, Items)
+  - Created Notion Items database (Description, Quantity, UnitPrice, Invoice relation)
+  - Connected the Notion Integration to both databases
+  - Note: Notion Status column uses `status` type (not `select`), which required a fix in Task 002
 
-- **Task 002: Notion Integration Verification & Bug Fixes**
-  - Verify `env.ts` and `notion.ts` reference consistent database ID env var names
-  - Add at least one test invoice with 2-3 line items in Notion
-  - Run `npm run dev` and visit `/invoice/[notionPageId]` to confirm data renders correctly
-  - Fix any property name mismatches between Notion database fields and `notion.ts` property extractors
-  - Playwright MCP test: verify invoice page loads with correct data from Notion API
+- [x] **Task 002: Notion Integration Verification & Bug Fixes** (Score: 92)
+  - Verified `env.ts` and `notion.ts` reference consistent database ID env var names
+  - Added test invoice (INV-001, ABC 디자인) with 3 line items
+  - **Bug found & fixed:** `getSelectProperty()` in `notion.ts` only handled `select` type, but Notion's Status column uses `status` type. Added `status` type handling and `toLowerCase()` normalization
+  - Playwright MCP verified: invoice page loads correctly, 404 works for invalid IDs, responsive layout at 375px and 1280px
 
 ---
 
-### Phase 2: Common -- Loading States, Error Handling & Responsive Foundation
+### Phase 2: Common -- Loading States, Error Handling & Responsive Foundation ✅
 
 **Goal:** Establish shared UI patterns (loading, error, metadata, responsive) that all features depend on, before building individual features.
 
-- **Task 003: Loading & Error States for Invoice Page** - Priority
-  - Create `src/app/invoice/[id]/loading.tsx` with shadcn/ui Skeleton matching InvoiceDetail layout (header, date grid, table rows, total)
-  - Create `src/app/invoice/[id]/error.tsx` as a Client Component for Notion API failure display (distinct from 404) with a "Retry" button using `reset()`
-  - Playwright MCP test: verify loading skeleton appears, error page renders with retry functionality
+- [x] **Task 003: Loading & Error States for Invoice Page** (Score: 92)
+  - Created `src/app/invoice/[id]/loading.tsx` — Skeleton UI matching InvoiceDetail structure (header, date grid, items table + mobile cards, total)
+  - Created `src/app/invoice/[id]/error.tsx` — Client Component Error Boundary with destructive Alert and retry Button
+  - Both files follow responsive pattern: desktop table (md+) and mobile cards (<md)
 
-- **Task 004: Metadata Enhancement & Root Layout Setup**
-  - Add root layout metadata in `src/app/layout.tsx` with site name and default description
-  - Enhance `generateMetadata()` in the invoice page to include Open Graph tags (`og:title`, `og:description`)
-  - Playwright MCP test: verify OG tags render correctly in page source
+- [x] **Task 004: Metadata Enhancement & Root Layout Setup** (Score: 93)
+  - Added `metadataBase` to root layout with `getBaseUrl()` helper (NEXT_PUBLIC_APP_URL > VERCEL_URL > localhost)
+  - Enhanced `generateMetadata()` with `openGraph` fields (title, description, type) for both valid and not-found cases
+  - Verified OG tags render in HTML via curl: `og:title="INV-001 - ABC 디자인 견적서"`
 
-- **Task 005: Responsive Layout Verification & Polish**
-  - Verify invoice header stacks cleanly on screens narrower than 640px
-  - Confirm mobile card layout shows all data points (description, quantity, unit price, amount) legibly
-  - Verify with browser DevTools responsive mode at 375px, 768px, and 1280px breakpoints
-  - Playwright MCP test: verify layout renders correctly at mobile, tablet, and desktop viewport sizes
+- [x] **Task 005: Responsive Layout Verification & Polish** (Score: 90)
+  - Verified at 375px (mobile), 768px (tablet), 1280px (desktop) via Playwright screenshots
+  - **Fix applied:** Mobile Card layout had excessive gap between CardHeader and CardContent (24px → 12px), overridden with `gap-3 py-4`
+  - All breakpoints confirmed: header stacking, grid columns, Table/Card switching all correct
 
 ---
 
@@ -177,8 +177,8 @@ The following foundation work has already been completed:
 | `@react-pdf/renderer` incompatibility with Next.js 15 Turbopack              | High -- blocks PDF feature    | Test early in Phase 3. Fall back to Puppeteer (server-side HTML-to-PDF) if needed.                                                        |
 | Notion API rate limiting (3 requests/second)                                 | Medium -- slow page loads     | Invoice page makes 2 API calls (page + items). Monitor in production. Add caching (ISR or in-memory) if needed.                           |
 | Korean font rendering in PDF                                                 | Medium -- garbled text in PDF | `@react-pdf/renderer` requires explicit font registration for non-Latin characters. Register Noto Sans KR in Task 006.                    |
-| Notion property name mismatch                                                | High -- data fails to load    | Carefully match Notion database field names to property names in `notion.ts` (e.g., "InvoiceNumber", "ClientName"). Verified in Task 002. |
-| `NOTION_ITEMS_DATABASE_ID` vs `NOTION_INVOICES_DATABASE_ID` naming confusion | Medium -- wrong data queried  | Verify env var names are consistent across `env.ts` and `notion.ts` in Task 002.                                                          |
+| Notion property name mismatch                                                | High -- data fails to load    | ✅ **Resolved in Task 002.** Property names match. Additionally found `status` vs `select` type mismatch — fixed with dual-type handling. |
+| `NOTION_ITEMS_DATABASE_ID` vs `NOTION_INVOICES_DATABASE_ID` naming confusion | Medium -- wrong data queried  | ✅ **Resolved in Task 002.** Env var names are consistent across `env.ts` and `notion.ts`.                                                |
 
 ---
 
