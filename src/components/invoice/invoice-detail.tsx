@@ -1,4 +1,4 @@
-import type { Invoice, InvoiceStatus } from '@/types/invoice'
+import type { Invoice } from '@/types/invoice'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { formatKRW, formatDate } from '@/lib/format'
+import { getStatusBadge } from '@/lib/invoice-utils'
 import { PdfDownloadButton } from '@/components/invoice/pdf-download-button'
 import { AlertCircle, Clock } from 'lucide-react'
 
@@ -40,35 +41,6 @@ function getExpirationStatus(validUntil: string): {
   if (daysLeft < 0) return { type: 'expired', daysLeft }
   if (daysLeft <= 7) return { type: 'expiring-soon', daysLeft }
   return { type: 'valid', daysLeft }
-}
-
-/**
- * Returns the appropriate Badge variant and label for each invoice status.
- * - pending: yellow/warning look
- * - approved: green/success look
- * - rejected: red/destructive look
- */
-function getStatusBadge(status: InvoiceStatus) {
-  const statusConfig = {
-    pending: {
-      // Using outline variant with custom class for yellow color
-      className:
-        'border-yellow-400 bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300',
-      label: '검토 중',
-    },
-    approved: {
-      className:
-        'border-green-400 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300',
-      label: '승인됨',
-    },
-    rejected: {
-      className:
-        'border-red-400 bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300',
-      label: '반려됨',
-    },
-  }
-
-  return statusConfig[status]
 }
 
 /**

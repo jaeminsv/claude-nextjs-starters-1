@@ -12,6 +12,8 @@ const envSchema = z.object({
   NOTION_INVOICES_DATABASE_ID: z.string().optional(),
   // Notion database ID where invoice line items are stored
   NOTION_ITEMS_DATABASE_ID: z.string().optional(),
+  // Admin password for simple auth (optional for backward compatibility)
+  ADMIN_PASSWORD: z.string().optional(),
 })
 
 export const env = envSchema.parse({
@@ -22,6 +24,7 @@ export const env = envSchema.parse({
   NOTION_API_KEY: process.env.NOTION_API_KEY,
   NOTION_INVOICES_DATABASE_ID: process.env.NOTION_INVOICES_DATABASE_ID,
   NOTION_ITEMS_DATABASE_ID: process.env.NOTION_ITEMS_DATABASE_ID,
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
 })
 
 export type Env = z.infer<typeof envSchema>

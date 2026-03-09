@@ -1,6 +1,11 @@
 import { Client } from '@notionhq/client'
 import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
-import type { Invoice, InvoiceItem, InvoiceStatus } from '@/types/invoice'
+import type {
+  Invoice,
+  InvoiceItem,
+  InvoiceListItem,
+  InvoiceStatus,
+} from '@/types/invoice'
 import { env } from '@/lib/env'
 
 // Lazy-initialized Notion client instance (created on first API call)
@@ -35,6 +40,31 @@ function getItemsDatabaseId(): string {
     )
   }
   return env.NOTION_ITEMS_DATABASE_ID
+}
+
+/**
+ * Validates that the Notion Invoices database ID is configured.
+ * Throws a clear error message if missing.
+ */
+function getInvoicesDatabaseId(): string {
+  if (!env.NOTION_INVOICES_DATABASE_ID) {
+    throw new Error(
+      'NOTION_INVOICES_DATABASE_ID is not configured. Please set it in .env.local'
+    )
+  }
+  return env.NOTION_INVOICES_DATABASE_ID
+}
+
+/**
+ * Parses a raw status string into a valid InvoiceStatus.
+ * Returns 'pending' as default if the value is unrecognized.
+ * This is shared by getInvoiceById() and getAllInvoices().
+ */
+function parseInvoiceStatus(rawStatus: string): InvoiceStatus {
+  const validStatuses: InvoiceStatus[] = ['pending', 'approved', 'rejected']
+  return validStatuses.includes(rawStatus as InvoiceStatus)
+    ? (rawStatus as InvoiceStatus)
+    : 'pending'
 }
 
 /**
@@ -187,13 +217,8 @@ export async function getInvoiceById(pageId: string): Promise<Invoice | null> {
     // Calculate the total amount by summing all item amounts
     const totalAmount = items.reduce((sum, item) => sum + item.amount, 0)
 
-    // Extract the status and validate it matches our InvoiceStatus type
-    const rawStatus = getSelectProperty(page, 'Status')
-    const status: InvoiceStatus = ['pending', 'approved', 'rejected'].includes(
-      rawStatus
-    )
-      ? (rawStatus as InvoiceStatus)
-      : 'pending' // Default to 'pending' if an unexpected value is returned
+    // Extract and validate the status using shared parser
+    const status = parseInvoiceStatus(getSelectProperty(page, 'Status'))
 
     return {
       id: page.id,
@@ -211,4 +236,46 @@ export async function getInvoiceById(pageId: string): Promise<Invoice | null> {
     console.error(`Failed to fetch invoice with ID "${pageId}":`, error)
     return null
   }
+}
+
+/**
+ * Fetches all invoices from the Notion Invoices database.
+ * Returns a lightweight list (no line items) sorted by issue date descending.
+ * Handles Notion's pagination limit (100 results per call) using cursor-based pagination.
+ *
+ * @returns An array of InvoiceListItem objects, sorted newest first
+ */
+export async function getAllInvoices(): Promise<InvoiceListItem[]> {
+  const allPages: PageObjectResponse[] = []
+  let cursor: string | undefined = undefined
+
+  // Loop through all pages of results using cursor-based pagination
+  do {
+    const response = await getNotionClient().databases.query({
+      database_id: getInvoicesDatabaseId(),
+      sorts: [{ property: 'IssueDate', direction: 'descending' }],
+      start_cursor: cursor,
+    })
+
+    // Filter to full page objects only (exclude partial responses)
+    const pages = response.results.filter(
+      (page): page is PageObjectResponse => 'properties' in page
+    )
+    allPages.push(...pages)
+
+    // Move to next page if more results exist
+    cursor = response.has_more ? (response.next_cursor ?? undefined) : undefined
+  } while (cursor !== undefined)
+
+  // Map each Notion page to our lightweight InvoiceListItem shape
+  return allPages.map(page => ({
+    id: page.id,
+    invoiceNumber: getTextProperty(page, 'InvoiceNumber'),
+    clientName: getTextProperty(page, 'ClientName'),
+    issueDate: getDateProperty(page, 'IssueDate'),
+    validUntil: getDateProperty(page, 'ValidUntil'),
+    status: parseInvoiceStatus(getSelectProperty(page, 'Status')),
+    // TotalAmount property may not exist in Notion DB — defaults to 0
+    totalAmount: getNumberProperty(page, 'TotalAmount'),
+  }))
 }

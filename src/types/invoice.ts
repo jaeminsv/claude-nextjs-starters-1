@@ -10,6 +10,17 @@ export interface InvoiceItem {
   amount: number // Total (quantity × unitPrice)
 }
 
+// Lightweight invoice data for list views (excludes line items for performance)
+export interface InvoiceListItem {
+  id: string // Notion page ID
+  invoiceNumber: string // Display invoice number (e.g., "INV-001")
+  clientName: string // Client/customer name
+  issueDate: string // ISO date string for issue date
+  validUntil: string // ISO date string for expiration
+  totalAmount: number // Total amount (0 if not available in Notion)
+  status: InvoiceStatus // Current invoice status
+}
+
 // Complete invoice data structure
 export interface Invoice {
   id: string // Notion page ID

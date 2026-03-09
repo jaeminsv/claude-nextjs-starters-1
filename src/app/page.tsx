@@ -1,4 +1,6 @@
+import Link from 'next/link'
 import { Container } from '@/components/layout/container'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 /**
  * Home page for the Invoice Management System.
@@ -7,7 +9,11 @@ import { Container } from '@/components/layout/container'
  */
 export default function Home() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
+    <main className="relative flex min-h-screen items-center justify-center">
+      {/* Theme toggle — positioned at top-right corner of the page */}
+      <div className="absolute top-4 right-6">
+        <ThemeToggle />
+      </div>
       <Container size="sm">
         <div className="text-center">
           {/* App title */}
@@ -21,6 +27,16 @@ export default function Home() {
             <br />
             공유받은 링크를 통해 견적서에 접속해 주세요.
           </p>
+
+          {/* Admin access link */}
+          <div className="mt-8">
+            <Link
+              href="/admin"
+              className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4 transition-colors"
+            >
+              관리자 페이지
+            </Link>
+          </div>
         </div>
       </Container>
     </main>
