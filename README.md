@@ -74,7 +74,7 @@ NOTION_ITEMS_DATABASE_ID=xxxxxxxxxxxxx
    | ClientName    | Text                                   |
    | IssueDate     | Date                                   |
    | ValidUntil    | Date                                   |
-   | Status        | Select (pending / approved / rejected) |
+   | Status        | Status (pending / approved / rejected) |
    | Items         | Relation → Items database              |
 
 4. Create an **Items** database with these properties:
@@ -121,38 +121,98 @@ npm run format       # Prettier (write)
 ```
 src/
   app/
+    api/invoice/[id]/pdf/
+      route.tsx              # PDF generation API route (GET)
     invoice/[id]/
-      page.tsx         # Invoice detail page (Server Component)
-    not-found.tsx      # 404 page for invalid invoice IDs
-    layout.tsx         # Root layout
-    globals.css        # Global styles
+      page.tsx               # Invoice detail page (Server Component)
+      loading.tsx            # Skeleton loading UI
+      error.tsx              # Error boundary (Client Component)
+    not-found.tsx            # 404 page for invalid invoice IDs
+    layout.tsx               # Root layout with metadata base
+    globals.css              # Global styles
   components/
     invoice/
-      invoice-detail.tsx    # Invoice display component
+      invoice-detail.tsx     # Invoice display component with expiration warning
+      invoice-pdf.tsx        # PDF document component (@react-pdf/renderer)
+      pdf-download-button.tsx # PDF download button (Client Component)
     layout/
-      container.tsx         # Responsive container wrapper
-    ui/                     # shadcn/ui components
+      container.tsx          # Responsive container wrapper
+    providers/
+      theme-provider.tsx     # Dark mode theme provider
+    ui/                      # shadcn/ui components
   lib/
-    notion.ts          # Notion API client and data fetchers
-    env.ts             # Environment variable validation (Zod)
-    utils.ts           # Utility helpers
+    notion.ts                # Notion API client and data fetchers
+    env.ts                   # Environment variable validation (Zod)
+    format.ts                # Shared formatting utilities (KRW, dates)
+    fonts.ts                 # Korean font registration for PDF
+    utils.ts                 # Utility helpers
   types/
-    invoice.ts         # TypeScript types (Invoice, InvoiceItem, InvoiceStatus)
+    invoice.ts               # TypeScript types (Invoice, InvoiceItem, InvoiceStatus)
+public/
+  fonts/
+    NotoSansKR-Regular.otf   # Korean font for PDF rendering
+    NotoSansKR-Bold.otf      # Korean font (bold) for PDF rendering
 ```
+
+## Data Flow
+
+```
+┌─────────────────┐     Notion API      ┌──────────────────┐
+│  Notion Database │ ──────────────────► │  Server Component │
+│  (Invoices +     │  pages.retrieve()   │  page.tsx         │
+│   Items)         │  databases.query()  │                   │
+└─────────────────┘                     └────────┬─────────┘
+                                                 │
+                                                 ▼
+                                        ┌──────────────────┐
+                                        │  InvoiceDetail    │
+                                        │  (Server Component)│
+                                        │  - Header + Badge │
+                                        │  - Expiration     │
+                                        │  - Items Table    │
+                                        │  - Total Amount   │
+                                        └────────┬─────────┘
+                                                 │
+                              ┌───────────────────┼───────────────────┐
+                              ▼                                       ▼
+                     ┌──────────────────┐                    ┌──────────────────┐
+                     │  PdfDownloadButton│                    │  PDF API Route    │
+                     │  (Client Component)│ ── fetch() ──►   │  /api/invoice/    │
+                     │  - Click handler  │                    │  [id]/pdf         │
+                     │  - Loading state  │                    │  - renderToStream │
+                     │  - Toast errors   │ ◄── blob ────     │  - InvoicePDF     │
+                     └──────────────────┘                    └──────────────────┘
+```
+
+1. Client accesses `/invoice/[notionPageId]`
+2. Server Component fetches invoice page + related items from Notion API (2 API calls)
+3. InvoiceDetail renders the invoice with expiration warning logic
+4. When "PDF 다운로드" is clicked, the Client Component calls `/api/invoice/[id]/pdf`
+5. The API route fetches the same data, renders InvoicePDF via `@react-pdf/renderer`, and streams the PDF back
 
 ## Deployment
 
-Deploy to Vercel in one command:
+### Vercel (Recommended)
+
+1. Push your repository to GitHub
+2. Import the project in [Vercel Dashboard](https://vercel.com/new)
+3. Add the following environment variables in project settings:
+
+   | Variable                      | Description                   |
+   | ----------------------------- | ----------------------------- |
+   | `NOTION_API_KEY`              | Notion integration secret key |
+   | `NOTION_INVOICES_DATABASE_ID` | Invoices database ID from URL |
+   | `NOTION_ITEMS_DATABASE_ID`    | Items database ID from URL    |
+   | `NEXT_PUBLIC_APP_URL`         | (Optional) Custom domain URL  |
+
+4. Deploy — Vercel auto-detects Next.js and configures the build
+
+### Manual Deployment
 
 ```bash
-vercel deploy
+npm run build    # Production build with Turbopack
+npm run start    # Start production server
 ```
-
-Add the following environment variables in the Vercel project settings:
-
-- `NOTION_API_KEY`
-- `NOTION_INVOICES_DATABASE_ID`
-- `NOTION_ITEMS_DATABASE_ID`
 
 ## Documentation
 
