@@ -1,4 +1,5 @@
 import { Container } from '@/components/layout/container'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 /**
  * Custom 404 Not Found page.
@@ -7,7 +8,11 @@ import { Container } from '@/components/layout/container'
  */
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
+    <main className="relative flex min-h-screen items-center justify-center">
+      {/* Theme toggle — positioned at top-right corner of the page */}
+      <div className="absolute top-4 right-6">
+        <ThemeToggle />
+      </div>
       <Container size="sm">
         <div className="text-center">
           {/* Large 404 indicator */}

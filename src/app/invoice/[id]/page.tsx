@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { getInvoiceById } from '@/lib/notion'
 import { InvoiceDetail } from '@/components/invoice/invoice-detail'
 import { Container } from '@/components/layout/container'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 // Props type for dynamic route pages in Next.js App Router
 interface PageProps {
@@ -70,6 +71,10 @@ export default async function InvoicePage({ params }: PageProps) {
   return (
     <main className="min-h-screen py-8 md:py-12">
       <Container size="md">
+        {/* Theme toggle — allows users to switch between light/dark/system themes */}
+        <div className="mb-4 flex justify-end">
+          <ThemeToggle />
+        </div>
         <InvoiceDetail invoice={invoice} />
       </Container>
     </main>
